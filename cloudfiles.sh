@@ -11,7 +11,7 @@
 function usage {
   echo "Usage: $0 [Username] [API Key] LS"
   echo "       $0 [Username] [API Key] LS [container]"
-  echo "       $0 [Username] [API Key] PUT [container] [local file]"
+  echo "       $0 [Username] [API Key] PUT [container] [local file] [remote file]"
   echo "       $0 [Username] [API Key] GET [/container/object]"
   echo "       $0 [Username] [API Key] MKDIR [/container]"
   echo "       $0 [Username] [API Key] RM [/container/object]"
@@ -20,7 +20,7 @@ function usage {
 }
 
 function scurl {
-  curl -s -g -w '%{http_code}' -H Expect: -H "X-Auth-Token: $TOKEN" -X "$@"
+  curl -s -g -w '%{http_code}' -o /dev/null -H Expect: -H "X-Auth-Token: $TOKEN" -X "$@"
 }
 
 if [ -z $1 ] || [ -z $2 ] || [ -z $3 ]; then
@@ -51,15 +51,19 @@ else
       if [ ! -f $5 ]; then
         usage
       fi
+      if [ "$6" != "" ]; then
+        OBJNAME="$6"
+      else
+        OBJNAME=`basename "$5"`
+      fi
       TYPE=`file -bi "$5"`
-      OBJNAME=`basename "$5"`
       CODE=`scurl PUT -H "Content-Type: $TYPE" -T "$5" "$URL/$4/$OBJNAME"`
       ;;
     MKDIR) CODE=`scurl PUT -T /dev/null "$URL/$4"`;;
     RM*) CODE=`scurl DELETE "$URL/$4"`;;
     *) usage
     esac
-  if [ $CODE -lt 200 ] || [ $CODE -gt 299 ]; then
+  if [ "$CODE" -lt 200 ] || [ "$CODE" -gt 299 ]; then
     echo "Invalid response code: $CODE"
     exit 1
   fi
